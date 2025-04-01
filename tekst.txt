@@ -1,0 +1,60 @@
+High-Level Overview: Suspicious Sender Domain Detection (Databricks + Proofpoint)
+🎯 Objective
+Detect potentially malicious or suspicious sender domains by excluding known, historically seen legitimate senders. The idea is to flag new or first-time sender domains that may be part of phishing or Business Email Compromise (BEC) campaigns.
+
+🧠 Playbook Logic Breakdown
+Step 1: Build the "Whitelist" from Historical Data
+Data Window: Look back from 90 days ago up to 1 day ago
+
+Data Source: Proofpoint email logs
+
+Action: Extract all sender email domains
+
+Purpose: This creates your baseline/whitelist — domains that have a known history of interacting with your organization and are less likely to be malicious.
+
+plaintext
+Kopiuj
+Edytuj
+SELECT DISTINCT domain(sender_email)
+FROM proofpoint_logs
+WHERE timestamp BETWEEN NOW() - 90d AND NOW() - 1d
+Step 2: Analyze New Email Logs
+Data Window: Use logs from the past 24 hours (i.e., NOW() - 1d to NOW())
+
+Action: Extract sender domains and exclude any that are found in the whitelist
+
+Purpose: Isolate first-time or uncommon domains — these are higher risk and worth further investigation.
+
+plaintext
+Kopiuj
+Edytuj
+SELECT *
+FROM proofpoint_logs
+WHERE timestamp >= NOW() - 1d
+  AND domain(sender_email) NOT IN (whitelistdata)
+Step 3: Visualization / Dashboard
+Show top new sender domains by:
+
+Volume
+
+Geolocation (if available from IPs)
+
+Attachment or link presence
+
+Targeted users (VIPs, finance, etc.)
+
+Add filters to review:
+
+Domains flagged by threat intel
+
+Domains with high risk reputation
+
+Attachments or URLs in emails
+
+🛡️ Why This Works
+Reduces noise by focusing only on "new" senders
+
+Helps detect early-stage phishing, spoofing, or BEC attempts
+
+Adaptable to evolving threats while maintaining efficiency
+
